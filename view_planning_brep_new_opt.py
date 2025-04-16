@@ -689,7 +689,7 @@ def visualize_selected_viewpoints(mesh, surface_pcd, selected_viewpoints, candid
 def main():
     file_path = "RM-FAA-10S-0000.STL"  # Replace with your CAD model path
     offset_distance = 0.442  # Distance from the object surface, which should be the sweet point of the camera
-    number_of_surface_points = 500 # Number of downsampled surface points
+    number_of_surface_points = 1000 # Number of downsampled surface points
     voxel_size = 0.02       # Resolution of viewpoint discretization
 
     # the FOV model of the camera based on distance, the given model is the Photoneo PhoXi 3D Scanner S

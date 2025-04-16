@@ -8,7 +8,6 @@ import pdb
 import trimesh
 import mesh_raycast
 
-
 def load_cad_model(file_path):
     """
     Load the CAD model and compute normals.
@@ -75,19 +74,19 @@ def compute_viewpoint_surface(mesh, offset_distance, number_of_surface_points, v
         pcd.paint_uniform_color([0.0, 0.0, 1.0]) 
         o3d.visualization.draw_geometries([mesh, origin_frame],
                                           zoom=0.8,
-                                          front=[-1, -1, -1],
-                                          lookat=[0, 0, 0],
-                                          up=[0, 1, 0])
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
         o3d.visualization.draw_geometries([mesh, pcd, centroid_sphere, origin_frame],
                                     zoom=0.8,
-                                    front=[-1, -1, -1],
-                                    lookat=[0, 0, 0],
-                                    up=[0, 1, 0])
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
         o3d.visualization.draw_geometries([mesh, pcd, viewpoint_pcd, centroid_sphere, origin_frame],
                                     zoom=0.8,
-                                    front=[-1, -1, -1],
-                                    lookat=[0, 0, 0],
-                                    up=[0, 1, 0])
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
     surface_pcd = pcd 
     return viewpoint_pcd, surface_pcd
 
@@ -123,9 +122,9 @@ def discretize_viewpoint_surface(mesh, viewpoint_pcd, voxel_size, visualize=True
         candidate_pcd.paint_uniform_color([1, 0, 0])  # Red for the candidate viewpoints
         o3d.visualization.draw_geometries([mesh, candidate_pcd, origin_frame],
                                           zoom=0.8,
-                                          front=[-1, -1, -1],
-                                          lookat=[0, 0, 0],
-                                          up=[0, 1, 0])
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
     return np.array(candidate_viewpoints)
 
 def compute_visibility_brep(file_path, surface_pcd, candidate_viewpoints, scanning_specs):
@@ -173,28 +172,14 @@ def compute_visibility_brep(file_path, surface_pcd, candidate_viewpoints, scanni
             if not (min_dist <= distance <= max_dist):
                 continue
 
-            # # Check if the surface point is within the scanning area at the given distance
-            # scanning_area = area_func(distance)
-            # half_width, half_height = scanning_area[0] / 2, scanning_area[1] / 2
-
-            # # Project the surface point to the camera's local frame
-            # local_point = sp - vp
-            # x, y, z = local_point[0], local_point[1], local_point[2]
-
-            # # Ensure the point is within the FOV
-            # if not (-half_width <= x <= half_width and -half_height <= y <= half_height):
-            #     continue
 
             # Check if the surface point is within the FOV
-            if not is_point_in_fov(vp, sp, ray_direction, distance, area_func):
+            if not is_point_in_fov(vp, sp, -surface_normals[j], ray_direction, distance, area_func):
                 continue
 
             # Perform ray-casting using mesh_raycast
             result = mesh_raycast.raycast(source=vp, direction=ray_direction, mesh=triangles)
 
-            # if not isinstance(result, dict):
-            #     # print(f"Unexpected result type: {type(result)}, value: {result}")
-            #     continue
             
             # Validate ray-casting result
             if result is None:
@@ -222,7 +207,7 @@ def compute_visibility_brep(file_path, surface_pcd, candidate_viewpoints, scanni
             
     return visible_dict
 
-def is_point_in_fov(vp, sp, direction, distance, area_func, up_vector=np.array([0, 0, 1])):
+def is_point_in_fov(vp, sp, negtive_surface_normal, connecting_direction, connecting_distance, area_func, up_vector=np.array([0, 0, 1])):
     """
     Check if a surface point is within the FOV of the camera at a given viewpoint.
 
@@ -237,27 +222,53 @@ def is_point_in_fov(vp, sp, direction, distance, area_func, up_vector=np.array([
     Returns:
         True if the point is within the FOV, False otherwise.
     """
-    # Compute the camera's local coordinate system
-    camera_z = direction  # Viewing direction
-    camera_x = np.cross(up_vector, camera_z)
-    if np.linalg.norm(camera_x) < 1e-5:
-        raise ValueError("Up vector is parallel to viewing direction.")
-    camera_x /= np.linalg.norm(camera_x)  # Normalize
-    camera_y = np.cross(camera_z, camera_x)
+    cos_theta= np.dot(negtive_surface_normal,connecting_direction)
+    if cos_theta< 0:
+        # Compute the camera's local coordinate system
+        camera_z = -negtive_surface_normal  # Viewing direction
+        camera_x = np.cross(up_vector, camera_z)
+        if np.linalg.norm(camera_x) < 1e-5:
+            raise ValueError("Up vector is parallel to viewing direction.")
+        camera_x /= np.linalg.norm(camera_x)  # Normalize
+        camera_y = np.cross(camera_z, camera_x)
 
-    # Transform surface point to camera's local frame
-    local_point = sp - vp
-    x_local = np.dot(local_point, camera_x)  # Project onto camera_x
-    y_local = np.dot(local_point, camera_y)  # Project onto camera_y
-    z_local = np.dot(local_point, camera_z)  # Project onto camera_z
+        # Transform surface point to camera's local frame
+        local_point = sp - vp
+        x_local = np.dot(local_point, camera_x)  # Project onto camera_x
+        y_local = np.dot(local_point, camera_y)  # Project onto camera_y
+        z_local = np.dot(local_point, camera_z)  # Project onto camera_z
 
-    # Ensure the point is in front of the camera
-    if z_local <= 0:
-        return False
+        # Ensure the point is in front of the camera
+        if z_local <= 0:
+            return False
+        fov_distance = -cos_theta * connecting_distance
+    
+    elif cos_theta> 0:
+        # Compute the camera's local coordinate system
+        camera_z = negtive_surface_normal  # Viewing direction
+        camera_x = np.cross(up_vector, camera_z)
+        if np.linalg.norm(camera_x) < 1e-5:
+            raise ValueError("Up vector is parallel to viewing direction.")
+        camera_x /= np.linalg.norm(camera_x)  # Normalize
+        camera_y = np.cross(camera_z, camera_x)
+
+        # Transform surface point to camera's local frame
+        local_point = sp - vp
+        x_local = np.dot(local_point, camera_x)  # Project onto camera_x
+        y_local = np.dot(local_point, camera_y)  # Project onto camera_y
+        z_local = np.dot(local_point, camera_z)  # Project onto camera_z
+
+        # Ensure the point is in front of the camera
+        if z_local <= 0:
+            return False
+        fov_distance = cos_theta * connecting_distance
+        
+    elif cos_theta== 0:
+        return True
 
     # Check if the point is within the FOV
-    scanning_area = area_func(distance)
-    half_width, half_height = scanning_area[0] / 2, scanning_area[1] / 2
+    scanning_area = area_func(fov_distance)
+    half_width, half_height = scanning_area[0]*0.7 , scanning_area[1]*0.7 
 
     return -half_width <= x_local <= half_width and -half_height <= y_local <= half_height
 
@@ -368,11 +379,11 @@ def visualize_visibility_brep(mesh, surface_pcd, candidate_viewpoints, visible_d
     # Visualize everything
     o3d.visualization.draw_geometries(
         [mesh, surface_pcd, line_set, origin_frame] + viewpoint_spheres,
-        zoom=0.8,
-        front=[-1, -1, -1],
-        lookat=np.mean(np.asarray(mesh.vertices), axis=0),
-        up=[0, 1, 0],
-    )
+                                    zoom=0.8,
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
+    
 
 def compute_mean_direction(viewpoint, visible_points, surface_points):
     """
@@ -478,7 +489,7 @@ def optimize_viewpoints_with_values(visible_dict, viewpoint_values, surface_pcd,
             if coverage_contribution > 0:
                 # Calculate score based on coverage and viewpoint value
                 score = coverage_contribution
-                score += viewpoint_values[vp]*2
+                score += viewpoint_values[vp]*0.5
 
                 # Redundancy penalty: subtract penalty for covering points already covered
                 repetitive_points = points.intersection(covered_points)
@@ -636,21 +647,29 @@ def visualize_selected_viewpoints(mesh, surface_pcd, selected_viewpoints, candid
 
     # Combine all the objects for visualization
     visualization_objects = [mesh, surface_pcd, origin_frame] + viewpoint_spheres + viewpoint_frames
-    o3d.visualization.draw_geometries(visualization_objects)
+    o3d.visualization.draw_geometries(visualization_objects, zoom=0.8,
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
+    
 
     # Combine objects with uncovered points for final visualization
     visualization_objects_with_uncovered_points = (
         [mesh, surface_pcd, origin_frame] + viewpoint_frames + frustums + uncovered_points_spheres
     )
-    o3d.visualization.draw_geometries(visualization_objects_with_uncovered_points)
+    o3d.visualization.draw_geometries(visualization_objects_with_uncovered_points, zoom=0.8,
+                                    front=[0, 0, 1],
+                                    lookat=[0, 1, 0],
+                                    up=[1, 0, 0])
+    
 
     return viewpoint_6Ds
 
 def main():
-    file_path = "RM-FAA-10S-0000.STL"  # Replace with your CAD model path
-    offset_distance = 0.442  # Distance from the object surface, which should be the sweet point of the camera
+    file_path = "8400310XKM42A_new.STL"  # Replace with your CAD model path
+    offset_distance = 0.442  # Distance from the object surface, which should be the sweet point of the camera 0.442
     number_of_surface_points = 500 # Number of downsampled surface points
-    voxel_size = 0.02       # Resolution of viewpoint discretization
+    voxel_size = 0.02      # Resolution of viewpoint discretization
 
     # the FOV model of the camera based on distance, the given model is the Photoneo PhoXi 3D Scanner S
     scanning_specs = {
@@ -686,6 +705,7 @@ def main():
 
     print( "The number of planned viewpoints are : ",len(selected_viewpoints_idx))
     print(f"Selected Viewpoints idx: {selected_viewpoints_idx}")
+    print(f"Selected Viewpoints 6d in object frame are: {viewpoint_6Ds}")
     # print(f"Selected Viewpoints frames: {viewpoint_6Ds}")
 
 

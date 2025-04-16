@@ -1,0 +1,14 @@
+<link name="sensor"/>
+  <joint name="sensor_to_ee_joint" type="fixed">
+    <parent link="mz25_link6"/>
+    <child link="sensor"/>
+    <origin rpy="1.5650382 0.0151406 1.2972786" xyz="0.13561461 0.11234608 -0.03856858"/>
+  </joint>
+
+<joint name="part_yaw" type="fixed">
+    <parent link="part_pitch_link"/>
+    <child link="part"/>
+    <origin xyz="1.37 -0.059744 0.933103" rpy="0.007566385 0.0691947 1.6306392"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.14159" upper="3.14159" effort="10.0" velocity="1.0"/>
+  </joint>
