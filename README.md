@@ -1,63 +1,129 @@
-# python-mesh-raycast
+# Viewpoint Planning for RoboScan 3D Scanning and Object Pose Initial Estimation
+This repository provides Python scripts for 3D scanning and pose estimation of objects using point clouds and mesh models. The tools support tasks like initial pose estimation, viewpoint planning, result transformation, visualization, and pose calibration, ideal for the RoboScan applications.
 
-Ray-casting on meshes for python.
+## Dependencies
+To run the scripts, you need:
 
-## Install
+- Python 3.6+
+- open3d
+- numpy
+- scipy
+- trimesh
+- matplotlib
+- mesh_raycast (custom module)
 
-This module is **not available through pip**, it was designed to be forked and extended. Simplicity is a key goal in design. This module is using [glm](https://glm.g-truc.net/) and the Python's [c-api](https://docs.python.org/3/c-api/). The implementation can be found in the [mesh_raycast.cpp](mesh_raycast.cpp).
+## Installation
+### Prerequisites
+Ensure you have a C++ compiler and development tools installed, as mesh_raycast requires compilation:
 
 ```
-git clone https://github.com/cprogrammer1994/python-mesh-raycast
+sudo apt update
+sudo apt install -y build-essential python3-dev g++
+```
+
+### Install Dependencies
+Install all dependencies using the provided requirements.txt file::
+
+```
+python -m pip install -r requirements.txt 
+```
+
+This installs open3d, numpy, scipy, trimesh, matplotlib, and mesh_raycast from its GitHub repository.
+If the mesh_raycast git dependency fails (e.g., due to network issues or repository access), install it manually:
+
+```
+git clone https://github.com/szzhu-hkclr/python-mesh-raycast
 cd python-mesh-raycast
-python setup.py develop
+python -m pip install .
+cd ..
+python -m pip install open3d numpy scipy trimesh matplotlib
 ```
 
-## Cheat Sheet
+## Usage
+Each script can be run with Python. Ensure input files (e.g., STL models, point cloud files) are correctly specified in the scripts.
 
-```py
-import mesh_raycast
-
-triangles = np.array([
-    [0.0, 0.0, 0.0],
-    [4.0, 0.0, 0.0],
-    [0.0, 4.0, 0.0],
-], dtype='f4')
-
-result = mesh_raycast.raycast(source=(0.4, 0.8, 5.0), direction=(0.0, 0.0, -1.0), mesh=triangles)
+```
+python initial_pose_estimation.py
 ```
 
-The `result` is a list of objects with the following keys:
+- Estimates an object’s 3D pose by aligning point cloud fragments (PLY files) with a reference mesh (STL file) using RANSAC and ICP algorithms.
+- Inputs: Point cloud files, camera poses, mesh file path.
+- Outputs: Transformation matrix, visualization (if enabled).
 
-```py
-{
-    'face': 0,
-    'point': (0.4, 0.8, 0.0),
-    'normal': (0.0, 0.0, 1.0),
-    'coeff': (0.1, 0.2),
-    'distance': 5.0,
-    'dot': 1.0,
-}
+
+
+```
+python view_planning_brep.py
 ```
 
-- `face` is the index of the triangle from mesh
-- `point` is the point in world coordinates where the ray and the triangle intersects
-- `normal` is the normal of the triangle
-- `coeff` is a pair of coefficients from the internal calculations
-- `distance` is the distance between point and source
-- `dot` is the dot product of -direction and normal
+- Plans optimal camera viewpoints for 3D scanning of a CAD model, maximizing surface coverage while considering visibility and scanner constraints.
+- Inputs: STL file path, scanner specs (e.g., FOV, distance).
+- Outputs: Selected viewpoint indices, 6D poses, visualization.
 
-### sorting the result
 
-```py
-sorted(result, key=lambda x: x['distance'])
+
+```
+python result_transform.py
 ```
 
-### filtering the result
+- Transforms viewpoints from the object frame to the base frame, filters them (e.g., by angle), adjusts for distance, and optionally merges point clouds.
+- Inputs: Viewpoint poses, transformation parameters, STL file.
+- Outputs: Transformed viewpoints, registered point cloud (optional).
 
-```py
-first_matching_face = min(result, key=lambda x: x['distance'])['face']
+
+
+```
+python vp_visualize_object.py
 ```
 
-```py
-non_backfacing = filter(lambda x: x['dot'] > 0.0, result)
+- Visualizes the object mesh and selected viewpoints as coordinate frames in the object frame.
+- Inputs: STL file or mesh, viewpoint poses.
+- Outputs: 3D visualization.
+
+
+
 ```
+python vp_visualize_base.py
+```
+
+- Visualizes the object mesh and viewpoints in the base frame, showing their spatial arrangement.
+- Inputs: STL file or mesh, viewpoint poses, transformation parameters.
+- Outputs: 3D visualization.
+
+
+
+```
+python set_view.py
+```
+
+- Saves camera parameters after manual adjustment and reloads them for consistent mesh visualization.
+- Inputs: STL file.Outputs: Camera parameters file, visualization.
+
+
+
+```
+python part_pose_calibration.py
+```
+- Calibrates an object’s pose by applying local rotations and translations in its coordinate frame.
+- Inputs: Initial translation, RPY angles, rotation/translation adjustments.
+- Outputs: Updated translation, RPY angles.
+
+
+
+## Trouble Shooting
+- For detailed configuration (e.g., file paths, parameters), refer to the comments and code within each script.
+- Ensure the STL file path (e.g., 8400310XKM42A_new.STL) in scripts like view_planning_brep.py is valid.
+- Scripts use Open3D for visualization; ensure your system supports 3D rendering.
+- If using a ROS environment, test without sourcing ROS setup scripts to avoid conflicts.
+- Permission Issues: If you see Defaulting to user installation, ensure write permissions for the Python site-packages directory in the Docker container, or use 
+
+```
+python -m pip install . --user
+```
+
+- Network issue during pip install, try https://pypi.tuna.tsinghua.edu.cn/simple, i.e.
+
+```
+python -m pip install trimesh -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
