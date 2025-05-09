@@ -112,7 +112,7 @@ python part_pose_calibration.py
 
 ## Trouble Shooting
 - For detailed configuration (e.g., file paths, parameters), refer to the comments and code within each script.
-- Ensure the STL file path (e.g., 8400310XKM42A_new.STL) in scripts like view_planning_brep.py is valid.
+- Ensure the STL file path (e.g., data/8400310XKM42A_new.STL) in scripts like view_planning_brep.py is valid.
 - Scripts use Open3D for visualization; ensure your system supports 3D rendering.
 - If using a ROS environment, test without sourcing ROS setup scripts to avoid conflicts.
 - Permission Issues: If you see Defaulting to user installation, ensure write permissions for the Python site-packages directory in the Docker container, or use 

@@ -666,7 +666,7 @@ def visualize_selected_viewpoints(mesh, surface_pcd, selected_viewpoints, candid
     return viewpoint_6Ds
 
 def main():
-    file_path = "8400310XKM42A_new.STL"  # Replace with your CAD model path
+    file_path = "data/8400310XKM42A_new.STL"  # Replace with your CAD model path
     offset_distance = 0.442  # Distance from the object surface, which should be the sweet point of the camera 0.442
     number_of_surface_points = 500 # Number of downsampled surface points
     voxel_size = 0.02      # Resolution of viewpoint discretization

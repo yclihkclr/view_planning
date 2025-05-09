@@ -114,9 +114,9 @@ def estimate_object_pose_from_scans(ply_files, camera_poses, mesh_path, voxel_si
 
 
 # full sets of 12 pcl fragments (bad effeciency and stable good result)
-scanned_pcd_files =["ply_00-53-55.ply","ply_00-54-01.ply","ply_00-54-07.ply","ply_00-54-15.ply"
-                    ,"ply_00-54-22.ply","ply_00-54-29.ply","ply_00-54-35.ply","ply_00-54-42.ply"
-                    ,"ply_00-54-48.ply","ply_00-54-54.ply","ply_00-55-03.ply","ply_00-55-12.ply"]
+scanned_pcd_files =["data/2025_03_14/ply_00-53-55.ply","data/2025_03_14/ply_00-54-01.ply","data/2025_03_14/ply_00-54-07.ply","data/2025_03_14/ply_00-54-15.ply"
+                    ,"data/2025_03_14/ply_00-54-22.ply","data/2025_03_14/ply_00-54-29.ply","data/2025_03_14/ply_00-54-35.ply","data/2025_03_14/ply_00-54-42.ply"
+                    ,"data/2025_03_14/ply_00-54-48.ply","data/2025_03_14/ply_00-54-54.ply","data/2025_03_14/ply_00-55-03.ply","data/2025_03_14/ply_00-55-12.ply"]
 camera_poses = [ [0.505679 ,0.372129 ,0.874785 ,0.679306 ,  0.673188, 0.002037 , 0.292160]
                 ,[0.485921 ,0.545722 ,0.797907 ,0.677711 ,  0.615950, -0.054073, 0.397982]
                 ,[0.726444 ,0.519243 ,0.900194 ,0.649884 ,  0.704604, -0.198384, 0.204521]
@@ -160,6 +160,6 @@ camera_poses = [ [0.505679 ,0.372129 ,0.874785 ,0.679306 ,  0.673188, 0.002037 ,
 #     [0.213177 ,-0.674643, 0.644158, 0.390709,  0.695334, 0.571802 ,0.192090],
 # ]
 
-object_mesh_file = "8400310XKM42A_new.STL"
+object_mesh_file = "data/8400310XKM42A_new.STL"
 
 T_base_object = estimate_object_pose_from_scans(scanned_pcd_files, camera_poses, object_mesh_file)

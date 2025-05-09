@@ -228,7 +228,7 @@ def adjust_viewpoints_if_too_close(object_mesh_path, filtered_viewpoint_6Ds_list
 
     return adjusted_viewpoints
 
-file_path = "8400310XKM42A_new.STL" 
+file_path = "data/8400310XKM42A_new.STL" 
 filtered_viewpoint_6Ds_list_base = adjust_viewpoints_if_too_close(file_path, filtered_viewpoint_6Ds_list_base)
 
 print(f"filtered_viewpoint_6Ds_list_base after adjusted is: {filtered_viewpoint_6Ds_list_base}")
@@ -309,7 +309,7 @@ def merge_point_clouds(ply_files, poses):
 
 
 # # Load object STL (in object frame)
-# file_path = "8400310XKM42A_new.STL"
+# file_path = "data/8400310XKM42A_new.STL"
 # object_mesh = o3d.io.read_triangle_mesh(file_path)
 
 # # Apply transformation to move STL to base frame
