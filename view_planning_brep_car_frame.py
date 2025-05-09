@@ -228,7 +228,9 @@ def is_point_in_fov(vp, sp, negtive_surface_normal, connecting_direction, connec
         camera_z = -negtive_surface_normal  # Viewing direction
         camera_x = np.cross(up_vector, camera_z)
         if np.linalg.norm(camera_x) < 1e-5:
-            raise ValueError("Up vector is parallel to viewing direction.")
+            camera_x = np.array([1.0, 0.0, 0.0])  # Ensure float array
+            # raise ValueError("Up vector is parallel to viewing direction.")
+        # camera_x = np.array(camera_x, dtype=float)  # Convert to float
         camera_x /= np.linalg.norm(camera_x)  # Normalize
         camera_y = np.cross(camera_z, camera_x)
 
@@ -248,7 +250,9 @@ def is_point_in_fov(vp, sp, negtive_surface_normal, connecting_direction, connec
         camera_z = negtive_surface_normal  # Viewing direction
         camera_x = np.cross(up_vector, camera_z)
         if np.linalg.norm(camera_x) < 1e-5:
-            raise ValueError("Up vector is parallel to viewing direction.")
+            camera_x = np.array([1.0, 0.0, 0.0])  # Ensure float array
+            # raise ValueError("Up vector is parallel to viewing direction.")
+        # camera_x = np.array(camera_x, dtype=float)  # Convert to float
         camera_x /= np.linalg.norm(camera_x)  # Normalize
         camera_y = np.cross(camera_z, camera_x)
 
@@ -674,7 +678,7 @@ def main():
     offset_distance = 0.4
 
     # number_of_surface_points = 500 # Number of downsampled surface points
-    number_of_surface_points = 1500
+    number_of_surface_points = 500
     
     voxel_size = 0.02      # Resolution of viewpoint discretization
 
