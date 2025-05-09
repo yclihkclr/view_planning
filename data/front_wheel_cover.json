@@ -1,0 +1,12 @@
+{
+  "file_path": "data/8400310XKM42A_new.STL",
+  "offset_distance": 0.442,
+  "number_of_surface_points": 500,
+  "voxel_size": 0.02,
+  "near_width": 0.343,
+  "near_height": 0.237,
+  "near_distance": 0.384,
+  "far_width": 0.382,
+  "far_height": 0.319,
+  "far_distance": 0.52
+}

@@ -7,6 +7,62 @@ from scipy.sparse import lil_matrix, csr_matrix
 import pdb
 import trimesh
 import mesh_raycast
+import json
+import argparse
+import sys
+
+
+def load_configuration(config_path=None):
+    """
+    Load configuration from a JSON file or use default values.
+    """
+    default_config = {
+        "file_path": "data/car_frame.STL",
+        "offset_distance": 0.4,
+        "number_of_surface_points": 500,
+        "voxel_size": 0.02,
+        "near_width": 0.1826137,
+        "near_height": 0.1399103,
+        "near_distance": 0.25,
+        "far_width": 0.4255416,
+        "far_height": 0.3559081,
+        "far_distance": 0.6
+    }
+    
+    if config_path:
+        try:
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                # Merge with defaults for any missing keys
+                for key, value in default_config.items():
+                    if key not in config:
+                        config[key] = value
+        except Exception as e:
+            print(f"Error loading configuration file: {e}")
+            print("Using default configuration instead.")
+            config = default_config
+    else:
+        config = default_config
+    
+    # Construct scanning_specs based on config parameters
+    config["scanning_specs"] = {
+        "min_dist": config["near_distance"],
+        "max_dist": config["far_distance"],
+        "area_func": lambda d: (
+            config["near_width"] + 
+            (config["far_width"] - config["near_width"]) * 
+            (d - config["near_distance"]) / 
+            (config["far_distance"] - config["near_distance"]),
+            
+            config["near_height"] + 
+            (config["far_height"] - config["near_height"]) * 
+            (d - config["near_distance"]) / 
+            (config["far_distance"] - config["near_distance"])
+        )
+    }
+    
+    return config
+
 
 def load_cad_model(file_path):
     """
@@ -228,7 +284,7 @@ def is_point_in_fov(vp, sp, negtive_surface_normal, connecting_direction, connec
         camera_z = -negtive_surface_normal  # Viewing direction
         camera_x = np.cross(up_vector, camera_z)
         if np.linalg.norm(camera_x) < 1e-5:
-            camera_x = np.array([1.0, 0.0, 0.0])
+            camera_x = np.array([1.0, 0.0, 0.0])  # Ensure float array
             # raise ValueError("Up vector is parallel to viewing direction.")
         # camera_x = np.array(camera_x, dtype=float)  # Convert to float
         camera_x /= np.linalg.norm(camera_x)  # Normalize
@@ -250,7 +306,7 @@ def is_point_in_fov(vp, sp, negtive_surface_normal, connecting_direction, connec
         camera_z = negtive_surface_normal  # Viewing direction
         camera_x = np.cross(up_vector, camera_z)
         if np.linalg.norm(camera_x) < 1e-5:
-            camera_x = np.array([1.0, 0.0, 0.0])
+            camera_x = np.array([1.0, 0.0, 0.0])  # Ensure float array
             # raise ValueError("Up vector is parallel to viewing direction.")
         # camera_x = np.array(camera_x, dtype=float)  # Convert to float
         camera_x /= np.linalg.norm(camera_x)  # Normalize
@@ -670,18 +726,28 @@ def visualize_selected_viewpoints(mesh, surface_pcd, selected_viewpoints, candid
     return viewpoint_6Ds
 
 def main():
-    file_path = "data/8400310XKM42A_new.STL"  # Replace with your CAD model path
-    offset_distance = 0.442  # Distance from the object surface, which should be the sweet point of the camera 0.442
-    number_of_surface_points = 500 # Number of downsampled surface points
-    voxel_size = 0.02      # Resolution of viewpoint discretization
+    # Set up argument parser
+    parser = argparse.ArgumentParser(description='View planning for CAD models')
+    parser.add_argument('config', type=str, nargs='?', default=None, help='Path to JSON configuration file')
+    args = parser.parse_args()
+    
+    # Load configuration
+    config = load_configuration(args.config)
+    
+    # Extract parameters from config
+    file_path = config["file_path"]
+    offset_distance = config["offset_distance"]
+    number_of_surface_points = config["number_of_surface_points"]
+    voxel_size = config["voxel_size"]
+    scanning_specs = config["scanning_specs"]
 
-    # the FOV model of the camera based on distance, the given model is the Photoneo PhoXi 3D Scanner S
-    scanning_specs = {
-        "min_dist": 0.384,  # Minimum scanning distance in meters
-        "max_dist": 0.520,  # Maximum scanning distance in meters
-        "area_func": lambda d: (0.343 + (0.382 - 0.343) * (d - 0.384) / (0.520 - 0.384),
-                                0.237 + (0.319 - 0.237) * (d - 0.384) / (0.520 - 0.384))
-    }
+    # Print configuration info
+    print(f"Running with the following configuration:")
+    print(f"  CAD model: {file_path}")
+    print(f"  Offset distance: {offset_distance}")
+    print(f"  Surface points: {number_of_surface_points}")
+    print(f"  Voxel size: {voxel_size}")
+    print(f"  Scanning range: {scanning_specs['min_dist']} to {scanning_specs['max_dist']} meters")
 
     # Load CAD model
     mesh = load_cad_model(file_path)
@@ -697,21 +763,34 @@ def main():
     # Visualize visibility
     visualize_visibility_brep(mesh, surface_pcd, candidate_viewpoints, visible_dict, viewpoint_values)
     
-
-    #Optimize viewpoints and get the plan
+    # Optimize viewpoints and get the plan
     selected_viewpoints_idx, viewpoint_6Ds = optimize_viewpoints_with_values(
                                 visible_dict=visible_dict,
                                 viewpoint_values=viewpoint_values,
                                 surface_pcd=surface_pcd,
                                 candidate_viewpoints=candidate_viewpoints,
                                 mesh=mesh,
-                                scanning_specs= scanning_specs)
+                                scanning_specs=scanning_specs)
 
-    print( "The number of planned viewpoints are : ",len(selected_viewpoints_idx))
+    print("The number of planned viewpoints are:", len(selected_viewpoints_idx))
     print(f"Selected Viewpoints idx: {selected_viewpoints_idx}")
     print(f"Selected Viewpoints 6d in object frame are: {viewpoint_6Ds}")
-    # print(f"Selected Viewpoints frames: {viewpoint_6Ds}")
 
+    # Save results if needed
+    # result_output = {
+    #     "selected_viewpoints_indices": selected_viewpoints_idx,
+    #     "viewpoint_positions": [vp[0].tolist() for vp in viewpoint_6Ds],
+    #     "viewpoint_orientations": [vp[1].tolist() for vp in viewpoint_6Ds]
+    # }
+    # 
+    # if args.config:
+    #     output_file = args.config.replace('.json', '_results.json')
+    # else:
+    #     output_file = "viewplanning_results.json"
+    # 
+    # with open(output_file, 'w') as f:
+    #     json.dump(result_output, f, indent=2)
+    # print(f"Results saved to {output_file}")
 
 
 if __name__ == "__main__":
