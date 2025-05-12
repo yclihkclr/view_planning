@@ -23,7 +23,7 @@ def visualize_and_save(mesh):
     vis.destroy_window()
 
 # Load your mesh
-mesh = o3d.io.read_triangle_mesh("data/8400310XKM42A_new.STL")
+mesh = o3d.io.read_triangle_mesh("../data/8400310XKM42A_new.STL")
 
 # Run visualization and save camera parameters
 visualize_and_save(mesh)

@@ -47,7 +47,7 @@ def visualize_selected_viewpoints(object_mesh, viewpoint_6Ds_list_base, frustum_
     # # Visualize everything together
     # o3d.visualization.draw_geometries(visualization_objects)
 
-file_path = "data/8400310XKM42A_new.STL"  # Replace with your CAD model path
+file_path = "../data/8400310XKM42A_new.STL"  # Replace with your CAD model path
 
 # Load object STL (in object frame)
 object_mesh = o3d.io.read_triangle_mesh(file_path)

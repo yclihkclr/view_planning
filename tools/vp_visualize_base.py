@@ -45,7 +45,7 @@ def visualize_selected_viewpoints(object_mesh, viewpoint_6Ds_list_base, frustum_
     vis.destroy_window()
 
 
-file_path = "data/8400310XKM42A_new.STL"  # Replace with your CAD model path
+file_path = "../data/8400310XKM42A_new.STL"  # Replace with your CAD model path
 
 # Given transformation from base to object
 base_to_object_translation = np.array([1.38494077,-0.07737339,0.95311693])  # (x, y, z)
