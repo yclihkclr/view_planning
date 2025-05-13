@@ -43,22 +43,22 @@ python -m pip install open3d numpy scipy trimesh matplotlib
 Each script can be run with Python. Ensure input files (e.g., STL models, point cloud files) are correctly specified in the scripts.
 
 ```
+python view_planning_brep.py data/car_frame.json
+```
+
+- Plans optimal camera viewpoints for 3D scanning of a CAD model, maximizing surface coverage while considering visibility and scanner constraints.
+- Inputs: STL file path, scanner specs (e.g., FOV, distance).
+- Outputs: Selected viewpoint indices, 6D poses, visualization.
+
+
+
+```
 python initial_pose_estimation.py
 ```
 
 - Estimates an object’s 3D pose by aligning point cloud fragments (PLY files) with a reference mesh (STL file) using RANSAC and ICP algorithms.
 - Inputs: Point cloud files, camera poses, mesh file path.
 - Outputs: Transformation matrix, visualization (if enabled).
-
-
-
-```
-python view_planning_brep.py
-```
-
-- Plans optimal camera viewpoints for 3D scanning of a CAD model, maximizing surface coverage while considering visibility and scanner constraints.
-- Inputs: STL file path, scanner specs (e.g., FOV, distance).
-- Outputs: Selected viewpoint indices, 6D poses, visualization.
 
 
 
