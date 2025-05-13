@@ -1,0 +1,6 @@
+open3d
+numpy
+scipy
+trimesh
+matplotlib
+git+https://github.com/szzhu-hkclr/python-mesh-raycast.git#egg=mesh_raycast
