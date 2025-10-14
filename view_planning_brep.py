@@ -76,6 +76,27 @@ def load_cad_model(file_path):
     return mesh
 
 
+def create_normal_lines(pcd, scale=0.01, color=[1, 0, 0]):
+    """
+    Create a LineSet to visualize normals of a PointCloud.
+    Each line starts at a point and extends in the direction of its normal.
+    """
+    points = np.asarray(pcd.points)
+    normals = np.asarray(pcd.normals)
+
+    line_points = []
+    line_indices = []
+    for i, (p, n) in enumerate(zip(points, normals)):
+        line_points.append(p)
+        line_points.append(p + n * scale)  # tip of the normal line
+        line_indices.append([2*i, 2*i+1])
+
+    line_set = o3d.geometry.LineSet()
+    line_set.points = o3d.utility.Vector3dVector(np.array(line_points))
+    line_set.lines = o3d.utility.Vector2iVector(np.array(line_indices))
+    line_set.colors = o3d.utility.Vector3dVector([color] * len(line_indices))  # red
+    return line_set
+
 def compute_viewpoint_surface(mesh, offset_distance, number_of_surface_points, visualize=True):
     """
     Compute the viewpoint surface by offsetting the mesh surface outward.
@@ -84,12 +105,17 @@ def compute_viewpoint_surface(mesh, offset_distance, number_of_surface_points, v
 
 
     # Step 1: Sample points uniformly from the surface
-    pcd = mesh.sample_points_poisson_disk(number_of_points=number_of_surface_points, init_factor=5)
+    # pcd = mesh.sample_points_poisson_disk(number_of_points=number_of_surface_points, init_factor=5)
+    pcd = mesh.sample_points_poisson_disk(
+    number_of_points=number_of_surface_points,
+    init_factor=5,
+    use_triangle_normal=True
+    )
     # pcd = mesh.sample_points_uniformly(number_of_points=number_of_surface_points)
 
-    # Step 2: Estimate normals for the point cloud
-    pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30))
-    pcd.orient_normals_consistent_tangent_plane(k=15)
+    # # Step 2: Estimate normals for the point cloud
+    # pcd.estimate_normals(search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.01, max_nn=30))
+    # pcd.orient_normals_consistent_tangent_plane(k=15)
 
     # Step 3: Offset points outward by the fixed distance
     points = np.asarray(pcd.points)
@@ -98,51 +124,33 @@ def compute_viewpoint_surface(mesh, offset_distance, number_of_surface_points, v
     centroid = np.mean(np.asarray(mesh.vertices), axis=0)
     origin_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.2)
 
-    # # Check if the normal points away from the negtive_z_axis
-    # z_axis = origin_frame.get_rotation_matrix_from_xyz((0, 0, 0))[:, 2]
-    # negtive_z_axis = -z_axis
-    # for i in range(len(normals)):
-    #     if np.dot(normals[i], negtive_z_axis) < 0:  
-    #         normals[i] = -normals[i]  # Reverse the normal
-
-    # Check if normals point inward and reverse them
-    for i in range(len(normals)):
-        direction = points[i] - centroid  # Vector from centroid to the point
-        if np.dot(normals[i], direction) < 0:  # If normal points inward
-            normals[i] = -normals[i]  # Reverse the normal
-
-    # Update the point cloud normals
-    pcd.normals = o3d.utility.Vector3dVector(normals)
-
     offset_points = points + offset_distance * normals
 
     # visualize
     viewpoint_pcd = o3d.geometry.PointCloud()
     viewpoint_pcd.points = o3d.utility.Vector3dVector(offset_points)
+    viewpoint_pcd.normals = o3d.utility.Vector3dVector(normals)
 
     centroid_sphere = o3d.geometry.TriangleMesh.create_sphere(radius=0.02)  # Adjust radius as needed
     centroid_sphere.translate(centroid)  # Move the sphere to the centroid
     centroid_sphere.paint_uniform_color([1.0, 0.0, 0.0])  # Red color for the centroid spher
 
+    surface_pcd_normal_lines = create_normal_lines(pcd, scale=0.03, color=[0.6, 0.2, 0.8])  # adjust length    
+    viewpoint_pcd_normal_lines = create_normal_lines(viewpoint_pcd, scale=0.03, color=[1.0, 0.65, 0.0])  # adjust length
+
     if visualize:
-        mesh.paint_uniform_color([0.8, 0.8, 0.8])  # Light gray for the object
-        viewpoint_pcd.paint_uniform_color([0.2, 0.8, 0.2])  # Green for the viewpoint surface
-        pcd.paint_uniform_color([0.0, 0.0, 1.0]) 
-        o3d.visualization.draw_geometries([mesh, origin_frame],
-                                          zoom=0.8,
-                                    front=[0, 0, 1],
-                                    lookat=[0, 1, 0],
-                                    up=[1, 0, 0])
-        o3d.visualization.draw_geometries([mesh, pcd, centroid_sphere, origin_frame],
-                                    zoom=0.8,
-                                    front=[0, 0, 1],
-                                    lookat=[0, 1, 0],
-                                    up=[1, 0, 0])
-        o3d.visualization.draw_geometries([mesh, pcd, viewpoint_pcd, centroid_sphere, origin_frame],
-                                    zoom=0.8,
-                                    front=[0, 0, 1],
-                                    lookat=[0, 1, 0],
-                                    up=[1, 0, 0])
+        mesh.paint_uniform_color([0.8, 0.8, 0.8])   # gray
+        viewpoint_pcd.paint_uniform_color([0.2, 0.8, 0.2])  # green
+        pcd.paint_uniform_color([0.0, 0.0, 1.0])    # blue
+
+        # ---- Visualize everything ----
+        o3d.visualization.draw_geometries(
+            [mesh, pcd, surface_pcd_normal_lines, viewpoint_pcd, viewpoint_pcd_normal_lines, origin_frame],
+            zoom=0.8,
+            front=[0, 0, 1],
+            lookat=[0, 1, 0],
+            up=[1, 0, 0]
+        )
     surface_pcd = pcd 
     return viewpoint_pcd, surface_pcd
 
